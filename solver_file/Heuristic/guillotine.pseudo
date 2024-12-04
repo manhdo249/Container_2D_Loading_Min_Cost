@@ -1,0 +1,119 @@
+// Structure Definitions
+
+struct Free_Rectangles {
+    int corner_x;
+    int corner_y;
+    int width;
+    int height;
+    int area;
+};
+
+struct Items {
+    int width;
+    int height;
+    int pos_bin; // ID of the bin where the item is inserted
+};
+
+// Function to Split Free Rectangles after Item Insertion
+function spliting_process_guillotine(horizontal, rec, pack) -> list_of_free_rec:
+    list_of_free_rec = empty list of Free_Rectangles
+    
+    right_x = rec.corner_x + pack.width
+    right_y = rec.corner_y
+    right_width = rec.width - pack.width
+    top_x = rec.corner_x
+    top_y = rec.corner_y + pack.height
+    top_height = rec.height - pack.height
+    
+    // Horizontal or Vertical Split based on the condition
+    right_height = (horizontal) ? pack.height : rec.height
+    top_width = (horizontal) ? rec.width : pack.width
+    
+    // Add right rectangle if valid
+    if (right_width > 0 and right_height > 0):
+        new_free_rec = create Free_Rectangle with parameters (right_x, right_y, right_width, right_height)
+        append new_free_rec to list_of_free_rec
+    
+    // Add top rectangle if valid
+    if (top_width > 0 and top_height > 0):
+        new_free_rec = create Free_Rectangle with parameters (top_x, top_y, top_width, top_height)
+        append new_free_rec to list_of_free_rec
+
+    return list_of_free_rec
+
+
+// Function to choose splitting method based on rectangle dimensions
+function spliting_guillotine(rec, pack) -> list_of_free_rec:
+    return spliting_process_guillotine(rec.width <= rec.height, rec, pack)
+
+
+// Function to Merge Two Free Rectangles if Possible
+function merge_rec_guillotine(car):
+    for each free_rec in car.list_of_free_rec:
+        check_exist_width = false
+        check_exist_height = false
+        pos_check_width = 0
+        pos_check_height = 0
+        
+        for each other_rec in car.list_of_free_rec:
+            if (free_rec is not equal to other_rec):
+                
+                // Check for merging by width
+                if (free_rec.width == other_rec.width and free_rec.corner_x == other_rec.corner_x and 
+                    other_rec.corner_y == free_rec.corner_y + free_rec.height):
+                    check_exist_width = true
+                    pos_check_width = position of other_rec in car.list_of_free_rec
+                    break
+                
+                // Check for merging by height
+                if (free_rec.height == other_rec.height and free_rec.corner_y == other_rec.corner_y and
+                    other_rec.corner_x == free_rec.corner_x + free_rec.width):
+                    check_exist_height = true
+                    pos_check_height = position of other_rec in car.list_of_free_rec
+                    break
+        
+        // Merge two free_rec with the same width
+        if (check_exist_width):
+            merged_rec = create new Free_Rectangle with parameters (same corner_x, same corner_y, width, combined height)
+            car.list_of_free_rec.remove both free_rec and other_rec
+            append merged_rec to car.list_of_free_rec
+        
+        // Merge two free_rec with the same height
+        if (check_exist_height):
+            merged_rec = create new Free_Rectangle with parameters (combined width, same corner_y, height)
+            car.list_of_free_rec.remove both free_rec and other_rec
+            append merged_rec to car.list_of_free_rec
+
+
+// Function to Insert Item into the Best Free Rectangle in the Bin
+function insert_item_guillotine(car, pack) -> bool:
+    best_ranking_return = best_ranking(car, pack)
+    
+    if (best_ranking_return does not fit):
+        return false
+    
+    best_rec = best_ranking_return.best_free_rec
+    best_pos = best_ranking_return.best_position
+    rotated = best_ranking_return.rotated
+    
+    // Add the item to the chosen free rectangle
+    add_item(car, pack, rotated, best_rec.corner_x, best_rec.corner_y)
+    
+    // Remove the used free_rec and add the newly created free_recs after splitting
+    car.list_of_free_rec.remove at position best_pos
+    new_free_recs = spliting_guillotine(best_rec, pack)
+    for each rec in new_free_recs:
+        append rec to car.list_of_free_rec
+    
+    // Merge free rectangles if possible
+    merge_rec_guillotine(car)
+    
+    return true
+
+
+// Function to Solve Guillotine Problem (Bin Packing)
+function Solve_guillotine():
+    for each item in the list of items:
+        for each bin in the list of bins:
+            if (insert_item_guillotine(bin, item)):
+                break

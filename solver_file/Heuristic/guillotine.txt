@@ -1,0 +1,24 @@
+Các bước chính:
+phân vùng (splitting) -> ghép (merging) các vùng trống 
+-> lựa chọn thùng chứa (bin) phù hợp để chứa các vật phẩm (items)
+
+---spliting_process_guillotine---
++ Sau khi một vật phẩm được chèn vào, không gian còn lại trong thùng chứa được chia thành các phần mới (bằng cách phân chia theo chiều ngang hoặc chiều dọc).
++ Phần còn lại sẽ tạo ra tối đa 2 hình chữ nhật con: một phần nằm bên phải (right) và một phần nằm ở phía trên (top).
+
+---spliting_guillotine---
++ Chọn lựa phương pháp chia không gian (chia theo chiều ngang hoặc chiều dọc) dựa trên kích thước của hình chữ nhật gốc.
+
+---merge_rec_guillotine---
++ Kiểm tra và ghép hai hình chữ nhật trống vào nhau nếu chúng có thể ghép lại với nhau (dựa trên việc chúng có chung chiều rộng hoặc chiều cao và nằm cạnh nhau).
++ Quá trình này giúp giảm bớt số lượng các hình chữ nhật trống, tối ưu hóa không gian trong thùng chứa.
+
+---insert_item_guillotine---
++ Tìm một vị trí trống thích hợp trong thùng chứa để chèn vật phẩm. Sau khi vật phẩm được chèn vào, không gian còn lại sẽ được chia nhỏ và có thể được ghép lại sau đó.
+
+---Solve_guillotine---
++ Xử lý việc chèn tất cả các vật phẩm vào thùng chứa theo phương pháp First Fit (chọn thùng chứa đầu tiên có thể chứa vật phẩm).
+
+Mục tiêu của thuật toán này là tối ưu hóa việc sử dụng không gian trong thùng chứa, 
+đồng thời chia và ghép các vùng trống sao cho giảm thiểu không gian lãng phí.
+
