@@ -1,0 +1,27 @@
+Các bước chính:
+
+---spliting_process_maxrec---
++ Chia hình chữ nhật trống hiện tại thành các hình chữ nhật nhỏ hơn sau khi chèn một vật phẩm.
++ Ưu tiên tạo các hình chữ nhật lớn nhất ở góc phải (theo chiều dọc) và phía trên (theo chiều ngang).
+
+---check_intersec_maxrec---
++ Kiểm tra xem một vật phẩm có giao nhau với một hình chữ nhật trống không.
+
+---split_intersect_maxrec---
++ Nếu phát hiện giao nhau, hình chữ nhật trống được chia thành các phần nhỏ hơn để loại bỏ phần chồng lặp.
+
+---remove_covered_rec_maxrec---
++ Loại bỏ các hình chữ nhật bị che phủ hoàn toàn bởi hình chữ nhật khác để giảm số lượng hình chữ nhật không cần thiết.
+
+---remove_overlap_maxrec---
++ Loại bỏ các phần chồng lặp giữa hình chữ nhật trống và vật phẩm đã được chèn.
+
+---insert_item_maxrec---
++ Chèn một vật phẩm vào hình chữ nhật trống tốt nhất, chia không gian còn lại, và loại bỏ phần chồng lặp.
+
+---Solve_maxrec---
++ Lựa chọn thùng chứa đầu tiên phù hợp (First Fit) để chèn từng vật phẩm và tiếp tục lặp lại cho đến khi tất cả vật phẩm được chèn.
+
+Điểm khác biệt của MAXREC:
++ Tối ưu hóa việc quản lý các vùng không gian trống bằng cách giữ kích thước vùng trống lớn nhất có thể.
++ Loại bỏ các phần giao nhau và vùng bị che phủ để tránh dư thừa các hình chữ nhật trống.

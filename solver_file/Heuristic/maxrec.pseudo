@@ -1,0 +1,162 @@
+// Structure Definitions
+struct Free_Rectangles:
+    corner_x, corner_y  // Top-left corner coordinates
+    width, height       // Dimensions of the rectangle
+    area                // Computed area (width * height)
+
+struct Items:
+    width, height       // Dimensions of the item
+    corner_x, corner_y  // Coordinates where the item is placed
+    pos_bin             // ID of the bin where the item is placed
+
+
+// Function to Split Free Rectangle after Item Insertion
+function spliting_process_maxrec(rec, pack) -> list_of_free_rec:
+    list_of_free_rec = empty list of Free_Rectangles
+
+    // Vertical split (maximize the right rectangle)
+    if pack.width < rec.width:
+        new_free_rec = create Free_Rectangles(
+            corner_x = rec.corner_x + pack.width,
+            corner_y = rec.corner_y,
+            width = rec.width - pack.width,
+            height = rec.height
+        )
+        append new_free_rec to list_of_free_rec
+
+    // Horizontal split (maximize the top rectangle)
+    if pack.height < rec.height:
+        new_free_rec = create Free_Rectangles(
+            corner_x = rec.corner_x,
+            corner_y = rec.corner_y + pack.height,
+            width = rec.width,
+            height = rec.height - pack.height
+        )
+        append new_free_rec to list_of_free_rec
+
+    return list_of_free_rec
+
+
+// Function to Check if Item Intersects a Free Rectangle
+function check_intersec_maxrec(rec, pack) -> bool:
+    return not (
+        pack.corner_x >= rec.corner_x + rec.width or
+        pack.corner_y >= rec.corner_y + rec.height or
+        pack.corner_x + pack.width <= rec.corner_x or
+        pack.corner_y + pack.height <= rec.corner_y
+    )
+
+
+// Function to Find Overlap Between Item and Free Rectangle
+function find_overlap_maxrec(rec, pack) -> Free_Rectangles:
+    overlap_rec = create Free_Rectangles(
+        corner_x = max(rec.corner_x, pack.corner_x),
+        corner_y = max(rec.corner_y, pack.corner_y),
+        width = min(rec.corner_x + rec.width, pack.corner_x + pack.width) - max(rec.corner_x, pack.corner_x),
+        height = min(rec.corner_y + rec.height, pack.corner_y + pack.height) - max(rec.corner_y, pack.corner_y)
+    )
+    return overlap_rec
+
+
+// Function to Split Free Rectangle into Smaller Free Rectangles After Overlap
+function split_intersect_maxrec(initial_rec, overlap_rec) -> list_of_free_rec:
+    list_of_free_rec = empty list of Free_Rectangles
+
+    // Vertical split (left rectangle)
+    if overlap_rec.corner_x > initial_rec.corner_x:
+        new_free_rec = create Free_Rectangles(
+            corner_x = initial_rec.corner_x,
+            corner_y = initial_rec.corner_y,
+            width = overlap_rec.corner_x - initial_rec.corner_x,
+            height = initial_rec.height
+        )
+        append new_free_rec to list_of_free_rec
+
+    // Vertical split (right rectangle)
+    if overlap_rec.corner_x + overlap_rec.width < initial_rec.corner_x + initial_rec.width:
+        new_free_rec = create Free_Rectangles(
+            corner_x = overlap_rec.corner_x + overlap_rec.width,
+            corner_y = initial_rec.corner_y,
+            width = (initial_rec.corner_x + initial_rec.width) - (overlap_rec.corner_x + overlap_rec.width),
+            height = initial_rec.height
+        )
+        append new_free_rec to list_of_free_rec
+
+    // Horizontal split (bottom rectangle)
+    if overlap_rec.corner_y > initial_rec.corner_y:
+        new_free_rec = create Free_Rectangles(
+            corner_x = initial_rec.corner_x,
+            corner_y = initial_rec.corner_y,
+            width = initial_rec.width,
+            height = overlap_rec.corner_y - initial_rec.corner_y
+        )
+        append new_free_rec to list_of_free_rec
+
+    // Horizontal split (top rectangle)
+    if overlap_rec.corner_y + overlap_rec.height < initial_rec.corner_y + initial_rec.height:
+        new_free_rec = create Free_Rectangles(
+            corner_x = initial_rec.corner_x,
+            corner_y = overlap_rec.corner_y + overlap_rec.height,
+            width = initial_rec.width,
+            height = (initial_rec.corner_y + initial_rec.height) - (overlap_rec.corner_y + overlap_rec.height)
+        )
+        append new_free_rec to list_of_free_rec
+
+    return list_of_free_rec
+
+
+// Function to Remove Covered Free Rectangles
+function remove_covered_rec_maxrec(car):
+    for i in range(0, size of car.list_of_free_rec):
+        first_rec = car.list_of_free_rec[i]
+        for j in range(i+1, size of car.list_of_free_rec):
+            second_rec = car.list_of_free_rec[j]
+
+            if check_covered_maxrec(first_rec, second_rec):
+                remove second_rec from car.list_of_free_rec
+                decrement j
+            elif check_covered_maxrec(second_rec, first_rec):
+                remove first_rec from car.list_of_free_rec
+                decrement i
+                break
+
+
+// Function to Remove Overlap Between Free Rectangles and Items
+function remove_overlap_maxrec(car, pack):
+    for each rec in car.list_of_free_rec:
+        if check_intersec_maxrec(rec, pack):
+            overlap_rec = find_overlap_maxrec(rec, pack)
+            new_free_rec = split_intersect_maxrec(rec, overlap_rec)
+            remove rec from car.list_of_free_rec
+            append all new_free_rec to car.list_of_free_rec
+    remove_covered_rec_maxrec(car)
+
+
+// Function to Insert an Item into the Bin
+function insert_item_maxrec(car, pack) -> bool:
+    best_ranking_return = best_ranking(car, pack)
+
+    if not best_ranking_return.valid:
+        return false
+
+    best_rec = best_ranking_return.best_rec
+    best_pos = best_ranking_return.position
+    rotated = best_ranking_return.rotated
+
+    place_item(pack, best_rec.corner_x, best_rec.corner_y, rotated)
+    remove best_rec from car.list_of_free_rec
+
+    new_free_rec = spliting_process_maxrec(best_rec, pack)
+    append all new_free_rec to car.list_of_free_rec
+
+    remove_overlap_maxrec(car, pack)
+
+    return true
+
+
+// Main Function to Solve Maximal Rectangles Algorithm
+function Solve_maxrec():
+    for each item in list_of_items:
+        for each bin in list_of_bins:
+            if insert_item_maxrec(bin, item):
+                break
