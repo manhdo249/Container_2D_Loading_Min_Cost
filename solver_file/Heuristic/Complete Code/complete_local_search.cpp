@@ -513,14 +513,21 @@ void Solve_maxrec()
     }
 }
 
-void Solve_maxrec_partial(vector<Items*>& list_items, vector<Bins*>& list_bins)
+bool Solve_maxrec_partial(vector<Items*>& list_items, vector<Bins*>& list_bins)
 {
     for(auto& pack : list_items)
     {
+        bool found_place = false;
         // Bin First Fit: choose bin that first fit
-        for(auto& b : list_bins)
-            if(insert_item_maxrec(*b, *pack)) break;
+        for(auto& b : list_bins){
+            if(insert_item_maxrec(*b, *pack)) {
+                found_place = true;
+                break;
+            }
+        }
+        if (!found_place) return false;
     }
+    return true;
 }
 
 /*----------------- GUILLOTINE ALGORITHM -----------------*/
@@ -676,14 +683,21 @@ void Solve_guillotine()
     }
 }
 
-void Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bins)
+bool Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bins)
 {
     for(auto& pack : list_items)
     {
+        bool found_place = false;
         // Bin First Fit: choose bin that first fit
-        for(auto& b : list_bins)
-            if(insert_item_guillotine(*b, *pack)) break;
+        for(auto& b : list_bins){
+            if(insert_item_guillotine(*b, *pack)) {
+                found_place = true;
+                break;
+            }
+        }
+        if (!found_place) return false;
     }
+    return true;
 }
 
 /*---------------- LOCAL SEARCH ------------------*/
@@ -692,13 +706,13 @@ void Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bi
 pair<Bins*, Bins*> calculate_top_empty_space(const vector<Bins>& bins); // Computes the total unused area across all bins.
 vector<Bins> local_search(vector<Bins> current_bins,int max_iter);
 
-
+// Return largest free area across the bins: the larger -> the more compact the packing
 int calculate_score(vector<Bins*> list_bins){
-    int smallest_empty_space = INT_MAX;
+    int top_empty_space = INT_MIN;
     for (const auto & b : list_bins){
-        if (b->free_area < smallest_empty_space) smallest_empty_space = b->free_area;
+        if (b->free_area > top_empty_space) top_empty_space = b->free_area;
     }
-    return smallest_empty_space;
+    return top_empty_space;
 }
 
 // Function to calculate the top 1 bin and select K random bins
@@ -740,7 +754,7 @@ vector<Bins*> calculate_top_and_random_bins(vector<Bins>& bins, int K) {
         }
 
         // Select K random bins from the remaining bins
-        while (selected_bins.size() < K + 1 && !other_bins.empty()) {
+        while ((int)(selected_bins.size()) < K + 1 && !other_bins.empty()) {
             int index = std::rand() % other_bins.size();
             selected_bins.push_back(other_bins[index]);
             other_bins.erase(other_bins.begin() + index);  // Remove selected bin
@@ -777,13 +791,12 @@ void reset_item(Items * pack){
     pack->corner_y = 0;
 }
 
-vector<Items*> reset_and_retrieve_item_bin(vector<Bins*>& list_bins){
+vector<Items*> reset_bin_and_retrieve_item(vector<Bins*>& list_bins){
     vector<Items*> list_items;
 
     // Add and reset the item of the top bin
     for (auto & b : list_bins){
         for (const auto& pack : b->list_of_items){
-            reset_item(pack);
             list_items.push_back(pack);
         }
         reset_bin(b);
@@ -798,44 +811,40 @@ vector<Items*> reset_and_retrieve_item_bin(vector<Bins*>& list_bins){
 
 // Local Search Implementation
 vector<Bins> local_search(vector<Bins> current_bins,int max_iter) {
-    vector<Bins> best_bins = current_bins;
-
     while(max_iter--) {
 
-        // Select the top 2 bins
-        // pair<Bins*, Bins*> top_bins = calculate_top_empty_space(best_bins);
-        // vector<Bins*> list_bins = sort_bins(top_bins);
-
-        vector<Bins*> list_bins = calculate_top_and_random_bins(best_bins, min(5, N_bins));
+        // Select the bins
+        vector<Bins*> list_bins = calculate_top_and_random_bins(current_bins, min(5, N_bins));
 
         int best_score = calculate_score(list_bins);
 
-        // New solution for the top bin
-        vector<Items*> list_items = reset_and_retrieve_item_bin(list_bins);
-
-        // Store the temporal bins and items
-        // Bins top1 = *(top_bins.first);
-        // Bins top2 = *(top_bins.second);
+        // Store the temporal bins
         vector<Bins> save_bin;
-        vector<Items> save_item;
         for (auto b: list_bins) save_bin.push_back(*b);
-        for (auto pack: list_items) save_item.push_back(*pack);
 
-        Solve_maxrec_partial(list_items, list_bins);
+        // New solution for the top bin
+        vector<Items*> list_items = reset_bin_and_retrieve_item(list_bins);
+
+        // Store the temporal items
+        vector<Items> save_item;
+        for (auto pack: list_items) {
+            save_item.push_back(*pack);
+            reset_item(pack);
+        }
+
+        bool found_sol = Solve_maxrec_partial(list_items, list_bins);
 
         int new_score = calculate_score(list_bins);
         
-        // No improvement
-        if (best_score < new_score){
-            // swap(*(top_bins.first), top1);
-            // swap(*(top_bins.second), top2);
+        // No improvement or No solution
+        if (!found_sol || best_score > new_score){
             for (int j=0; j < (int)list_bins.size(); j++) swap(*list_bins[j], save_bin[j]);
             for (int i=0; i < (int)list_items.size(); i++) swap(*list_items[i], save_item[i]);
         }
 
     }
 
-    return best_bins;
+    return current_bins;
 }
 
 // 
@@ -1050,8 +1059,8 @@ signed main(/*int argv, char* argc[]*/)
     //     return 0;
     // }
     // freopen(argc[1], "r", stdin);
-   freopen("testing.data", "r", stdin);
-   freopen("testing2.out", "w", stdout);
+//    freopen("testing.data", "r", stdin);
+//    freopen("testing2.out", "w", stdout);
 
     // Start timing process
     // clock_t start_timing    = clock();
