@@ -302,7 +302,7 @@ void checking_status(int algorithm)
 //                    << item[i].rotated   << '\n';
 //        }
 //    }
-// }
+}
 
 /*----------------- MAXIMAL RECTANGLES ALGORITHM -----------------*/
 

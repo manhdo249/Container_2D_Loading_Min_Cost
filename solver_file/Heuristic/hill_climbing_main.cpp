@@ -974,7 +974,7 @@ void hill_climbing(vector<Bins>& current_bins, int max_iter) {
             if(found_sol && new_score > current_score) {
                 // Improvement found; accept the move
                 // Optionally, you can log the improvement
-                cout << "Iteration " << iter+1 << ": Improved score to " << new_score << endl;
+                // cout << "Iteration " << iter+1 << ": Improved score to " << new_score << endl;
                 improvement = true;
                 break; // Move to the next iteration after accepting an improvement
             }
