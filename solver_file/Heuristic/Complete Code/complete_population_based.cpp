@@ -91,8 +91,12 @@ Solution create_new_sol(){
 
 vector<Solution> all_sol;
 
-bool compare_sol(const Solution& sol_a, const Solution& sol_b){
+bool compare_sol1(const Solution& sol_a, const Solution& sol_b){
     return (double)sol_a.total_cost/(sol_a.total_free_area + 1e-1) < (double)sol_b.total_cost/(sol_b.total_free_area + 1e-1);
+}
+
+bool compare_sol(const Solution& sol_a, const Solution& sol_b){
+    return sol_a.total_cost < sol_b.total_cost;
 }
 
 // Build compare function for list of bins
@@ -591,6 +595,7 @@ void Population_maxrec(){
     Solution first_sol = create_new_sol();
     all_sol.push_back(first_sol);
     for (int i=1; i<=N_items; i++){
+        // priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> pq(compare_sol);
         priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> pq(compare_sol);
         for (auto &sol : all_sol){
             Next_maxrec(i, sol, pq);
