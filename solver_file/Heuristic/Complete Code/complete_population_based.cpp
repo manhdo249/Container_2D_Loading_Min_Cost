@@ -2,7 +2,7 @@
 
 using namespace std;
 
-const int MAXN  = 1e4 + 7;
+const int MAXN  = 1e3 + 7;
 const int inf   = INT_MAX;
 
 
@@ -10,6 +10,7 @@ const int inf   = INT_MAX;
 int N_items, N_bins;
 int bin_used, total_cost;
 int check_algorithm = 0;
+int N_sol = 5;
 
 /*----------------- BUILD STRUCTURES FOR ITEMS -----------------*/
 // Build structure for each item
@@ -68,6 +69,31 @@ struct Bins
     vector <Free_Rectangles> list_of_free_rec;
     vector <Items*> list_of_items;
 } bin[MAXN], bin_guillotine[MAXN], bin_maxrec[MAXN];
+
+struct Solution
+{
+    Items item_sol[MAXN];
+    Bins bin_sol[MAXN];
+    double total_free_area = 0;
+    int total_cost = 0;
+};
+
+Solution create_new_sol(){
+    Solution sol;
+    for (int i=1; i<=N_items; i++){
+        sol.item_sol[i] = item[i];
+    }
+    for (int j=1; j<=N_bins; j++){
+        sol.bin_sol[j] = bin[j];
+    }
+    return sol;
+}
+
+vector<Solution> all_sol;
+
+bool compare_sol(const Solution& sol_a, const Solution& sol_b){
+    return (double)sol_a.total_cost/(sol_a.total_free_area + 1e-1) < (double)sol_b.total_cost/(sol_b.total_free_area + 1e-1);
+}
 
 // Build compare function for list of bins
 bool compare_bin_by_density(Bins a, Bins b)
@@ -530,6 +556,76 @@ bool Solve_maxrec_partial(vector<Items*>& list_items, vector<Bins*>& list_bins)
     return true;
 }
 
+void Next_maxrec(int pack_id, const Solution &sol, priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> &pq){
+    int prev_j = 0;
+    for (int k=0; k < N_sol; k++){
+        Solution new_sol = sol;
+        bool found_place = false;
+        for (int j=prev_j+1; j <= N_bins; j++){ // Next solution will insert in the remaining bins
+            int prev_free_area = new_sol.bin_sol[j].free_area;
+            if (insert_item_maxrec(new_sol.bin_sol[j], new_sol.item_sol[pack_id])){
+                prev_j = j;
+                found_place = true;
+                // Update metadata of the new_sol: to efficiently calculate the solution's score
+                new_sol.total_free_area += (new_sol.bin_sol[j].free_area - prev_free_area);
+                if (prev_free_area == new_sol.bin_sol[j].area){
+                    // Add the cost of new bin
+                    new_sol.total_cost += new_sol.bin_sol[j].cost;
+                    new_sol.total_free_area += new_sol.bin_sol[j].area;
+                } 
+                break;
+            }
+        }
+        if (found_place) {
+            pq.push(new_sol);
+            if (pq.size() > N_sol){
+                pq.pop();
+            }
+        }
+        else return;
+    }
+}
+
+void Population_maxrec(){
+    // Solve
+    Solution first_sol = create_new_sol();
+    all_sol.push_back(first_sol);
+    for (int i=1; i<=N_items; i++){
+        priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> pq(compare_sol);
+        for (auto &sol : all_sol){
+            Next_maxrec(i, sol, pq);
+        }
+        all_sol.clear();
+        while (!pq.empty()) {
+            all_sol.push_back(pq.top());
+            pq.pop();
+        }
+    }
+    // Find best solution
+    int best_cost = INT_MAX;
+    Solution best_sol;
+    for (auto& sol : all_sol){
+        int sol_cost = 0;
+        for(int j = 1; j <= N_bins; ++j){
+            if(!sol.bin_sol[j].list_of_items.empty()){
+                sol_cost += sol.bin_sol[j].cost; // Calculate total cost
+            }
+        }
+        if (best_cost > sol_cost){
+            best_cost = sol_cost;
+            best_sol = sol;
+        }
+    }
+    // Write best solution to bin_maxrec
+    for (int j=1; j<=N_bins; j++){
+        bin[j] = best_sol.bin_sol[j];
+    }
+    for (int i=1; i<=N_items; i++){
+        item[i] = best_sol.item_sol[i];
+    }
+}
+
+
 /*----------------- GUILLOTINE ALGORITHM -----------------*/
 
 /*----------------- PACKING ITEMS -----------------*/
@@ -700,6 +796,75 @@ bool Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bi
     return true;
 }
 
+// void Next_guillotine(int pack_id, const Solution &sol, priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> &pq){
+//     int prev_j = 0;
+//     for (int k=0; k < N_sol; k++){
+//         Solution new_sol = move(sol);
+//         bool found_place = false;
+//         for (int j=prev_j+1; j <= N_bins; j++){ // Next solution will insert in the remaining bins
+//             int prev_free_area = new_sol.bin_sol[j].free_area;
+//             if (insert_item_maxrec(new_sol.bin_sol[j], new_sol.item_sol[pack_id])){
+//                 prev_j = j;
+//                 found_place = true;
+//                 // Update metadata of the new_sol: to efficiently calculate the solution's score
+//                 new_sol.total_free_area += (new_sol.bin_sol[j].free_area - prev_free_area);
+//                 if (prev_free_area == new_sol.bin_sol[j].area){
+//                     // Add the cost of new bin
+//                     new_sol.total_cost += new_sol.bin_sol[j].cost;
+//                     new_sol.total_free_area += new_sol.bin_sol[j].area;
+//                 } 
+//                 break;
+//             }
+//         }
+//         if (found_place) {
+//             pq.push(new_sol);
+//             if (pq.size() > N_sol){
+//                 pq.pop();
+//             }
+//         }
+//         else return;
+//     }
+// }
+
+// void Population_guillotine(){
+//     // Solve
+//     Solution first_sol = create_new_sol();
+//     all_sol.push_back(first_sol);
+//     for (int i=1; i<=N_items; i++){
+//         priority_queue<Solution, vector<Solution>, decltype(&compare_sol)> pq(compare_sol);
+//         for (auto &sol : all_sol){
+//             Next_guillotine(i, sol, pq);
+//         }
+//         all_sol.clear();
+//         while (!pq.empty()) {
+//             all_sol.push_back(pq.top());
+//             pq.pop();
+//         }
+//     }
+//     // Find best solution
+//     int best_cost = INT_MAX;
+//     Solution best_sol;
+//     for (auto& sol : all_sol){
+//         int sol_cost = 0;
+//         for(int j = 1; j <= N_bins; ++j){
+//             if(!sol.bin_sol[j].list_of_items.empty()){
+//                 sol_cost += sol.bin_sol[j].cost; // Calculate total cost
+//             }
+//         }
+//         if (best_cost > sol_cost){
+//             best_cost = sol_cost;
+//             best_sol = move(sol);
+//         }
+//     }
+//     // Write best solution to bin_maxrec
+//     for (int j=1; j<=N_bins; j++){
+//         bin[j] = best_sol.bin_sol[j];
+//     }
+//     for (int i=1; i<=N_items; i++){
+//         item[i] = best_sol.item_sol[i];
+//     }
+// }
+
 /*---------------- LOCAL SEARCH ------------------*/
 
 #include <random>
@@ -844,9 +1009,9 @@ void local_search(vector<Bins>& current_bins,int max_iter) {
             for (int j=0; j < (int)list_bins.size(); j++) swap(*list_bins[j], save_bin[j]);
             for (int i=0; i < (int)list_items.size(); i++) swap(*list_items[i], save_item[i]);
         }
-        // else{
-        //     cout << "Current score: " << new_score << endl;
-        // }
+        else{
+            cout << "Current score: " << new_score << endl;
+        }
     }
 }
 
@@ -890,15 +1055,15 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
 
         int new_score = calculate_score(list_bins);
 
-        // If no improvement, we can still accept a worse solution with some probability
+        // If no solution or no improvement, we can still accept a worse solution with some probability
         if (!found_sol || best_score > new_score) {
             // Calculate the probability of accepting the worse solution
-            double probability = exp((new_score - best_score) / (temperature * best_score));
+            double probability = exp((new_score - best_score) / temperature);
             
-            // Accept the worse solution with the calculated probability, if no solution then skip
-            if (found_sol && dis(gen) < probability) {
+            // Accept the worse solution with the calculated probability
+            if (dis(gen) < probability) {
                 // Accept the new configuration
-                // cout << "Current score: " << new_score << endl;
+                cout << "Current score: " << new_score << endl;
             } else {
                 // Revert to the previous solution
                 for (int j = 0; j < (int)list_bins.size(); j++) swap(*list_bins[j], save_bin[j]);
@@ -906,7 +1071,7 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
             }
         } else {
             // If we found a better solution, accept it
-            // cout << "Current score: " << new_score << endl;
+            cout << "Current score: " << new_score << endl;
         }
 
         // Gradually decrease the temperature
@@ -1006,10 +1171,12 @@ void Solve()
     Enter();
     // Run Gullotine algorithm
     Solve_guillotine();
+    // Population_guillotine();
     pair <int, int> guillotine_result   = calculate_solution();
     reset(0);
     // Run Maxrec algorithm
-    Solve_maxrec();
+    // Solve_maxrec();
+    Population_maxrec();
     pair <int, int> maxrec_result       = calculate_solution();
     reset(1);
     if(guillotine_result.first < maxrec_result.first)
@@ -1025,8 +1192,8 @@ void Solve()
         check_algorithm = 1;
     }
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
-    local_search(current_bin, 100000);
-    // simulated_annealing(current_bin, 100000, 1, 0.99);
+    local_search(current_bin, 0);
+    // simulated_annealing(current_bin, 10000, 10000, 0.99);
     check_algorithm = 1; // local search    
 }
 
