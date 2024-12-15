@@ -258,50 +258,50 @@ void checking_status(int algorithm)
 //    }
 
     // Output format for claiming data
-    if(algorithm == 0)
-    {
-        for(int i = 1; i <= N_items; ++i)
-        {
-            if(item_guillotine[i].rotated)      cout << "Rotate pack "  << item_guillotine[i].id << " and put";
-            else                                cout << "Put pack "     << item_guillotine[i].id;
-            cout    << " in bin " << item_guillotine[i].pos_bin
-                    << " that the top right corner coordinate (x, y) is ("
-                    << item_guillotine[i].corner_x + item_guillotine[i].width << ", " << item_guillotine[i].corner_y + item_guillotine[i].height << ")" << '\n';
-        }
-    }
-    else
-    {
-        for(int i = 1; i <= N_items; ++i)
-        {
-            if(item[i].rotated)     cout << "Rotate pack "  << item[i].id << " and put";
-            else                    cout << "Put pack "     << item[i].id;
-            cout    << " in bin " << item[i].pos_bin
-                    << " that the top right corner coordinate (x, y) is ("
-                    << item[i].corner_x + item[i].width << ", " << item[i].corner_y + item[i].height << ")" << '\n';
-        }
-    }
+    // if(algorithm == 0)
+    // {
+    //     for(int i = 1; i <= N_items; ++i)
+    //     {
+    //         if(item_guillotine[i].rotated)      cout << "Rotate pack "  << item_guillotine[i].id << " and put";
+    //         else                                cout << "Put pack "     << item_guillotine[i].id;
+    //         cout    << " in bin " << item_guillotine[i].pos_bin
+    //                 << " that the top right corner coordinate (x, y) is ("
+    //                 << item_guillotine[i].corner_x + item_guillotine[i].width << ", " << item_guillotine[i].corner_y + item_guillotine[i].height << ")" << '\n';
+    //     }
+    // }
+    // else
+    // {
+    //     for(int i = 1; i <= N_items; ++i)
+    //     {
+    //         if(item[i].rotated)     cout << "Rotate pack "  << item[i].id << " and put";
+    //         else                    cout << "Put pack "     << item[i].id;
+    //         cout    << " in bin " << item[i].pos_bin
+    //                 << " that the top right corner coordinate (x, y) is ("
+    //                 << item[i].corner_x + item[i].width << ", " << item[i].corner_y + item[i].height << ")" << '\n';
+    //     }
+    // }
 
     // Output format for submitting
-//    if(algorithm == 0)
-//    {
-//        sort(item_guillotine + 1, item_guillotine + N_items + 1, compare_reset_item);
-//        for(int i = 1; i <= N_items; ++i)
-//        {
-//            cout    << item_guillotine[i].id        << ' ' << item_guillotine[i].pos_bin  << ' '
-//                    << item_guillotine[i].corner_x  << ' ' << item_guillotine[i].corner_y << ' '
-//                    << item_guillotine[i].rotated   << '\n';
-//        }
-//    }
-//    else
-//    {
-//        sort(item + 1, item + N_items + 1, compare_reset_item);
-//        for(int i = 1; i <= N_items; ++i)
-//        {
-//            cout    << item[i].id        << ' ' << item[i].pos_bin  << ' '
-//                    << item[i].corner_x  << ' ' << item[i].corner_y << ' '
-//                    << item[i].rotated   << '\n';
-//        }
-//    }
+   if(algorithm == 0)
+   {
+       sort(item_guillotine + 1, item_guillotine + N_items + 1, compare_reset_item);
+       for(int i = 1; i <= N_items; ++i)
+       {
+           cout    << item_guillotine[i].id        << ' ' << item_guillotine[i].pos_bin  << ' '
+                   << item_guillotine[i].corner_x  << ' ' << item_guillotine[i].corner_y << ' '
+                   << item_guillotine[i].rotated   << '\n';
+       }
+   }
+   else
+   {
+       sort(item + 1, item + N_items + 1, compare_reset_item);
+       for(int i = 1; i <= N_items; ++i)
+       {
+           cout    << item[i].id        << ' ' << item[i].pos_bin  << ' '
+                   << item[i].corner_x  << ' ' << item[i].corner_y << ' '
+                   << item[i].rotated   << '\n';
+       }
+   }
 }
 
 /*----------------- MAXIMAL RECTANGLES ALGORITHM -----------------*/
@@ -704,6 +704,14 @@ bool Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bi
 
 #include <random>
 
+// Return largest free area across the bins: the larger -> the more compact the packing
+// int calculate_score(vector<Bins*> list_bins){
+//     int top_empty_space = INT_MIN;
+//     for (const auto & b : list_bins){
+//         if (b->free_area > top_empty_space) top_empty_space = b->free_area;
+//     }
+//     return top_empty_space;
+// }
 // Return least free item across the bins: the larger -> the more compact the packing
 int calculate_score(vector<Bins*> list_bins){
     int top_least_item = INT_MAX;
@@ -721,6 +729,19 @@ vector<Bins*> calculate_top_and_random_bins(vector<Bins>& bins, int K) {
         // Return early if no bins or invalid K
         return selected_bins;
     }
+
+    // int top1_empty_space = INT_MIN;
+    // Bins* top1_bin = nullptr;
+
+    // // Find top 1 bin with the most free space
+    // for (auto& b : bins) {
+    //     if (!b.list_of_items.empty()) {  // Only consider bins with items
+    //         if (b.free_area > top1_empty_space) {
+    //             top1_bin = &b;
+    //             top1_empty_space = b.free_area;
+    //         }
+    //     }
+    // }
 
     int top1_least_item = INT_MAX;
     Bins* top1_bin = nullptr;
@@ -891,9 +912,9 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
         int new_score = calculate_score(list_bins);
 
         // If no improvement, we can still accept a worse solution with some probability
-        if (!found_sol || best_score < new_score) {
+        if (!found_sol || best_score > new_score) {
             // Calculate the probability of accepting the worse solution
-            double probability = exp((best_score - new_score) / (temperature * best_score));
+            double probability = exp((new_score - best_score) / (temperature * best_score));
             
             // Accept the worse solution with the calculated probability, if no solution then skip
             if (found_sol && dis(gen) < probability) {
@@ -1025,8 +1046,8 @@ void Solve()
         check_algorithm = 1;
     }
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
-    // local_search(current_bin, 10000);
-    simulated_annealing(current_bin, 100000, 1, 0.99);
+    local_search(current_bin, 100000);
+    // simulated_annealing(current_bin, 100000, 1, 0.99);
     check_algorithm = 1; // local search    
 }
 
@@ -1035,8 +1056,8 @@ void Solve()
 void Print()
 {
     // Print the input sizes
-    cout << "Number of item given: "    << N_items      << '\n';
-    cout << "Number of bin given: "     << N_bins       << '\n';
+    // cout << "Number of item given: "    << N_items      << '\n';
+    // cout << "Number of bin given: "     << N_bins       << '\n';
 
     // Uncomment for more detailed information of packed items in each used bin
 //    cout << "Algorithm used: ";
@@ -1045,40 +1066,40 @@ void Print()
     checking_status(check_algorithm);
 
     // Print the solution
-    cout << "Number of bin used: "      << bin_used     << '\n';
-    cout << "Total cost: "              << total_cost   << '\n';
+    // cout << "Number of bin used: "      << bin_used     << '\n';
+    // cout << "Total cost: "              << total_cost   << '\n';
 }
 
 
 /*----------------- MAIN -----------------*/
-signed main(int argv, char* argc[])
+signed main(/*int argv, char* argc[]*/)
 {
     ios_base::sync_with_stdio(0);
     cin.tie(0); cout.tie(0);
-    if(argv < 2)
-    {
-        cout << "Error: No file name provided." << '\n';
-        return 0;
-    }
-    freopen(argc[1], "r", stdin);
+    // if(argv < 2)
+    // {
+    //     cout << "Error: No file name provided." << '\n';
+    //     return 0;
+    // }
+    // freopen(argc[1], "r", stdin);
 //    freopen("testing.data", "r", stdin);
-//    freopen("testing.out", "w", stdout);
+//    freopen("testing2.out", "w", stdout);
 
     // Start timing process
-    clock_t start_timing    = clock();
+    // clock_t start_timing    = clock();
 
     // Run solver
     Solve();
 
     // Stop timing process
-    clock_t end_timing      = clock();
+    // clock_t end_timing      = clock();
 
     // Print output
     Print();
     // Print additional informations
-    cout << "Status: "                  << "None"       << '\n';
-    cout << "Time limit: "              << "None"       << '\n';
-    cout << "Running time: ";
-    cout.precision(20);
-    cout << float(end_timing - start_timing)/CLOCKS_PER_SEC << '\n';
+    // cout << "Status: "                  << "None"       << '\n';
+    // cout << "Time limit: "              << "None"       << '\n';
+    // cout << "Running time: ";
+    // cout.precision(20);
+    // cout << float(end_timing - start_timing)/CLOCKS_PER_SEC << '\n';
 }

@@ -704,13 +704,13 @@ bool Solve_guillotine_partial(vector<Items*>& list_items, vector<Bins*>& list_bi
 
 #include <random>
 
-// Return largest free area across the bins: the larger -> the more compact the packing
+// Return least free item across the bins: the larger -> the more compact the packing
 int calculate_score(vector<Bins*> list_bins){
-    int top_empty_space = INT_MIN;
+    int top_least_item = INT_MAX;
     for (const auto & b : list_bins){
-        if (b->free_area > top_empty_space) top_empty_space = b->free_area;
+        if (b->area - b->free_area < top_least_item) top_least_item = b->area - b->free_area;
     }
-    return top_empty_space;
+    return top_least_item;
 }
 
 // Function to calculate the top 1 bin and select K random bins
@@ -722,15 +722,15 @@ vector<Bins*> calculate_top_and_random_bins(vector<Bins>& bins, int K) {
         return selected_bins;
     }
 
-    int top1_empty_space = INT_MIN;
+    int top1_least_item = INT_MAX;
     Bins* top1_bin = nullptr;
 
     // Find top 1 bin with the most free space
     for (auto& b : bins) {
         if (!b.list_of_items.empty()) {  // Only consider bins with items
-            if (b.free_area > top1_empty_space) {
+            if (b.area - b.free_area < top1_least_item) {
                 top1_bin = &b;
-                top1_empty_space = b.free_area;
+                top1_least_item = b.area - b.free_area;
             }
         }
     }
@@ -840,7 +840,7 @@ void local_search(vector<Bins>& current_bins,int max_iter) {
         int new_score = calculate_score(list_bins);
         
         // No improvement or No solution
-        if (!found_sol || best_score > new_score){
+        if (!found_sol || best_score < new_score){
             for (int j=0; j < (int)list_bins.size(); j++) swap(*list_bins[j], save_bin[j]);
             for (int i=0; i < (int)list_items.size(); i++) swap(*list_items[i], save_item[i]);
         }
@@ -891,9 +891,9 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
         int new_score = calculate_score(list_bins);
 
         // If no improvement, we can still accept a worse solution with some probability
-        if (!found_sol || best_score > new_score) {
+        if (!found_sol || best_score < new_score) {
             // Calculate the probability of accepting the worse solution
-            double probability = exp((new_score - best_score) / (temperature * best_score));
+            double probability = exp((best_score - new_score) / (temperature * best_score));
             
             // Accept the worse solution with the calculated probability, if no solution then skip
             if (found_sol && dis(gen) < probability) {
@@ -971,7 +971,7 @@ void hill_climbing(vector<Bins>& current_bins, int max_iter) {
             int new_score = found_sol ? calculate_score(neighbor_bins) : INT32_MAX;
 
             // Step 9: Decide whether to accept the new solution
-            if(found_sol && new_score > current_score) {
+            if(found_sol && new_score < current_score) {
                 // Improvement found; accept the move
                 // Optionally, you can log the improvement
                 // cout << "Iteration " << iter+1 << ": Improved score to " << new_score << endl;
@@ -1102,7 +1102,7 @@ void Solve()
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
     // local_search(current_bin, 100000);
     // simulated_annealing(current_bin, 100000, 1, 0.99);
-    hill_climbing(current_bin, 1000);
+    hill_climbing(current_bin, 100000);
     check_algorithm = 1; // local search    
 }
 
