@@ -11,7 +11,7 @@ input_data_folder=input_data/           # input data folder
 if [ -z "$mode" ]; then
     echo "Missing solver mode"
     exit 1
-elif [[ ! "$mode" =~ "CP1" && ! "$mode" =~ "CP2" && ! "$mode" =~ "MIP" && ! "$mode" =~ "HEU" ]]; then
+elif [[ ! "$mode" =~ "CP1" && ! "$mode" =~ "CP2" && ! "$mode" =~ "MIP" && ! "$mode" =~ "HEU" && ! "$mode" =~ "LS" && ! "$mode" =~ "PB" && ! "$mode" =~ "SA" && ! "$mode" =~ "HC" && ! "$mode" =~ "Tabu" ]]; then
     echo "Invalid solver mode"
     exit 1  
 else
@@ -20,16 +20,46 @@ else
 
         files=$(ls $input_data_folder/*.txt)                        # List all *.txt files in input folder
 
-        output_csv=$output_folder/results_${mode}_$attempt.csv      # csv file for results 
+        output_csv=$output_folder/results_${mode}_$attempt.csv      # csv file for results
+    elif [ $mode == "LS" ]; then 
+        output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)           
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "PB" ]; then 
+        output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "SA" ]; then 
+        output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "HC" ]; then 
+        output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "Tabu" ]; then 
+        output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv
     else
         output_folder=results/results_${mode}                     
 
-        files=$(ls $input_data_folder/*.txt | head -n 58)           # List 58 first *.txt files in input folder
+        files=$(ls $input_data_folder/*.txt)     
 
         output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
     fi
 
-    mkdir -p $output_folder                                         # Create output folder if it doesn't exist
+    mkdir -p $output_folder                                        
 fi
 
 # Create the columns for the results file
@@ -48,6 +78,16 @@ for file in $files; do
         /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  python solver_file/MIP_model.py $file $time_limit > $output_folder/$(basename $file).out 
     elif [ $mode == "HEU" ]; then 
         /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/heuristic_main $file > $output_folder/$(basename $file).out 
+    elif [ $mode == "LS" ]; then 
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/local_search_main $file $time_limit > $output_folder/$(basename $file).out 
+    elif [ $mode == "PB" ]; then 
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/population_based_main $file $time_limit > $output_folder/$(basename $file).out 
+    elif [ $mode == "SA" ]; then 
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/SA_main $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "HC" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/hill_climbing $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "Tabu" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/tabu_main $file $time_limit > $output_folder/$(basename $file).out
     fi
 
     # Get the input number of packages and number of bins from input file
@@ -62,6 +102,16 @@ for file in $files; do
         echo "$value" | tr '\n' ',' >> $output_csv
     done
     if  [ $mode == "HEU" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "LS" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "PB" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "SA" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "HC" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "Tabu" ]; then
         echo "None" | tr '\n' ','>> $output_csv
     else
         echo $time_limit | tr '\n' ',' >> $output_csv       # Write the time_limit to result file
