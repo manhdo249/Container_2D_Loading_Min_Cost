@@ -1,4 +1,5 @@
-// SA2 
+// HC2 
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -918,6 +919,81 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
     }
 }
 
+
+//
+// Hill climbing
+//
+
+void hill_climbing(vector<Bins>& current_bins, int max_iter) {
+    for(int iter = 0; iter < max_iter; ++iter) {
+        bool improvement = false;
+        // Step 1: Identify the worst bin (with the most free space)
+        vector<Bins*> selected_bins = calculate_top_and_random_bins(current_bins, 0); // K=1 for worst bin
+
+        if(selected_bins.empty()) {
+            // No bins to process
+            break;
+        }
+
+        Bins* worst_bin = selected_bins[0];
+
+        // Step 2: Iterate through all other bins to create neighbors
+        for(auto& other_bin : current_bins) {
+            if(&other_bin == worst_bin || other_bin.list_of_items.empty()) {
+                // Skip the worst bin itself and empty bins
+                continue;
+            }
+
+            // Define the neighbor as the pair (worst_bin, other_bin)
+            vector<Bins*> neighbor_bins = {worst_bin, &other_bin};
+
+            // Step 3: Calculate current score for these bins
+            int current_score = calculate_score(neighbor_bins);
+
+            // Step 4: Save the current state of the selected bins
+            vector<Bins> saved_bins;
+            for(auto bin_ptr : neighbor_bins) {
+                saved_bins.emplace_back(*bin_ptr);
+            }
+
+            // Step 5: Retrieve and reset items from the selected bins
+            vector<Items*> list_items = reset_bin_and_retrieve_item(neighbor_bins);
+
+            // Step 6: Save the current state of items
+            vector<Items> saved_items;
+            for(auto item_ptr : list_items) {
+                saved_items.emplace_back(*item_ptr);
+                reset_item(item_ptr); // Reset the item's state
+            }
+
+            // Step 7: Attempt to solve the modified bins
+            bool found_sol = Solve_maxrec_partial(list_items, neighbor_bins);
+
+            // Step 8: Calculate the new score after modification
+            int new_score = found_sol ? calculate_score(neighbor_bins) : INT32_MAX;
+
+            // Step 9: Decide whether to accept the new solution
+            if(found_sol && new_score < current_score) {
+                // Improvement found; accept the move
+                // Optionally, you can log the improvement
+                // cout << "Iteration " << iter+1 << ": Improved score to " << new_score << endl;
+                improvement = true;
+                break; // Move to the next iteration after accepting an improvement
+            }
+            else {
+                // No improvement or no solution found; revert to the saved state
+                for(int j = 0; j < neighbor_bins.size(); ++j) {
+                    *neighbor_bins[j] = saved_bins[j];
+                }
+                for(int i = 0; i < list_items.size(); ++i) {
+                    *list_items[i] = saved_items[i];
+                }
+            }
+        }
+        if (!improvement) break;
+    }
+}
+
 /*----------------- MAIN PROGRAM ------------------*/
 
 /*----------------- READ INPUT -----------------*/
@@ -1026,8 +1102,9 @@ void Solve()
         check_algorithm = 1;
     }
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
-    // local_search(current_bin, 10000);
-    simulated_annealing(current_bin, 100000, 1, 0.99);
+    // local_search(current_bin, 100000);
+    // simulated_annealing(current_bin, 100000, 1, 0.99);
+    hill_climbing(current_bin, 100000);
     check_algorithm = 1; // local search    
 }
 

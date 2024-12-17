@@ -1,4 +1,5 @@
-// SA2 
+// Tabu2 
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -918,6 +919,280 @@ void simulated_annealing(vector<Bins>& current_bins, int max_iter, double initia
     }
 }
 
+
+//
+// Hill climbing
+//
+
+void hill_climbing(vector<Bins>& current_bins, int max_iter) {
+    for(int iter = 0; iter < max_iter; ++iter) {
+        bool improvement = false;
+        // Step 1: Identify the worst bin (with the most free space)
+        vector<Bins*> selected_bins = calculate_top_and_random_bins(current_bins, 0); // K=1 for worst bin
+
+        if(selected_bins.empty()) {
+            // No bins to process
+            break;
+        }
+
+        Bins* worst_bin = selected_bins[0];
+
+        // Step 2: Iterate through all other bins to create neighbors
+        for(auto& other_bin : current_bins) {
+            if(&other_bin == worst_bin || other_bin.list_of_items.empty()) {
+                // Skip the worst bin itself and empty bins
+                continue;
+            }
+
+            // Define the neighbor as the pair (worst_bin, other_bin)
+            vector<Bins*> neighbor_bins = {worst_bin, &other_bin};
+
+            // Step 3: Calculate current score for these bins
+            int current_score = calculate_score(neighbor_bins);
+
+            // Step 4: Save the current state of the selected bins
+            vector<Bins> saved_bins;
+            for(auto bin_ptr : neighbor_bins) {
+                saved_bins.emplace_back(*bin_ptr);
+            }
+
+            // Step 5: Retrieve and reset items from the selected bins
+            vector<Items*> list_items = reset_bin_and_retrieve_item(neighbor_bins);
+
+            // Step 6: Save the current state of items
+            vector<Items> saved_items;
+            for(auto item_ptr : list_items) {
+                saved_items.emplace_back(*item_ptr);
+                reset_item(item_ptr); // Reset the item's state
+            }
+
+            // Step 7: Attempt to solve the modified bins
+            bool found_sol = Solve_maxrec_partial(list_items, neighbor_bins);
+
+            // Step 8: Calculate the new score after modification
+            int new_score = found_sol ? calculate_score(neighbor_bins) : INT32_MAX;
+
+            // Step 9: Decide whether to accept the new solution
+            if(found_sol && new_score < current_score) {
+                // Improvement found; accept the move
+                // Optionally, you can log the improvement
+                cout << "Iteration " << iter+1 << ": Improved score to " << new_score << endl;
+                improvement = true;
+                break; // Move to the next iteration after accepting an improvement
+            }
+            else {
+                // No improvement or no solution found; revert to the saved state
+                for(int j = 0; j < neighbor_bins.size(); ++j) {
+                    *neighbor_bins[j] = saved_bins[j];
+                }
+                for(int i = 0; i < list_items.size(); ++i) {
+                    *list_items[i] = saved_items[i];
+                }
+            }
+        }
+        if (!improvement) break;
+    }
+}
+
+//
+// Tabu search
+//
+
+// Struct to represent a move (pair of bin IDs)
+struct Move {
+    int worse_bin_id;
+    int other_bin_id;
+
+    bool operator==(const Move& other) const {
+        return (worse_bin_id == other.worse_bin_id) && (other_bin_id == other.other_bin_id);
+    }
+};
+
+// Hash function for Move to be used in unordered_set
+struct MoveHash {
+    size_t operator()(const Move& m) const {
+        return hash<int>()(m.worse_bin_id) ^ hash<int>()(m.other_bin_id << 1);
+    }
+};
+
+void store_best_items(vector<Items>& best_items){
+    for (int i=1; i<=N_items; i++) best_items[i-1] = item[i];
+}
+
+void load_best_items(vector<Items>& best_items){
+    for (int i=1; i<=N_items; i++) item[i] = best_items[i-1];
+}
+
+// Tabu Search Function
+void tabu_search(vector<Bins>& current_bins, int max_iter, int tabu_tenure) {
+    // Initialize tabu list as a deque to maintain order
+    deque<Move> tabu_list_deque;
+    // Use unordered_set for O(1) lookup
+    unordered_set<Move, MoveHash> tabu_set;
+
+    // Initialize best solution tracking
+    int best_score = INT32_MAX;
+    vector<Items> best_items(MAXN);
+    store_best_items(best_items);
+
+    for(int iter = 0; iter < max_iter; ++iter) {
+        // Step 1: Identify the worst bin
+        vector<Bins*> worst_bins = calculate_top_and_random_bins(current_bins, 0); // K=1 for worst bin
+
+        if(worst_bins.empty()) {
+            // No bins to process
+            break;
+        }
+
+        Bins* worst_bin = worst_bins[0];
+
+        // Step 2: Iterate through all other bins to create neighbors
+        vector<Bins*> candidate_bins;
+        for(auto& other_bin : current_bins) {
+            if(&other_bin == worst_bin || other_bin.list_of_items.empty()) {
+                // Skip the worst bin itself and empty bins
+                continue;
+            }
+            candidate_bins.push_back(&other_bin);
+        }
+
+        // Variables to track the best move in this iteration
+        Move best_move;
+        int best_move_score = INT32_MAX;
+        bool move_found = false;
+
+        for(auto& other_bin : candidate_bins) {
+            // Define the move
+            Move current_move = {worst_bin->id, other_bin->id};
+
+            // Check if the move is tabu
+            if(tabu_set.find(current_move) != tabu_set.end()) {
+                continue; // Move is tabu; skip
+            }
+
+            // Define the neighbor as the pair (worst_bin, other_bin)
+            vector<Bins*> neighbor_bins = {worst_bin, other_bin};
+
+            // Save the current state of the selected bins
+            vector<Bins> saved_bins;
+            for(auto bin_ptr : neighbor_bins) {
+                saved_bins.emplace_back(*bin_ptr);
+            }
+
+            // Retrieve and reset items from the selected bins
+            vector<Items*> list_items = reset_bin_and_retrieve_item(neighbor_bins);
+
+            // Save the current state of items
+            vector<Items> saved_items;
+            for(auto item_ptr : list_items) {
+                saved_items.emplace_back(*item_ptr);
+                reset_item(item_ptr); // Reset the item's state
+            }
+
+            // Attempt to solve the modified bins
+            bool found_sol = Solve_maxrec_partial(list_items, neighbor_bins);
+
+            // Calculate the new score after modification
+            int new_score = found_sol ? calculate_score(neighbor_bins) : INT32_MAX;
+
+            // Check if the move improves the score
+            if(found_sol && new_score < best_move_score) {
+                best_move_score = new_score;
+                best_move = current_move;
+                move_found = true;
+            }
+
+            // Revert to the saved state
+            for(int j = 0; j < neighbor_bins.size(); ++j) {
+                *neighbor_bins[j] = saved_bins[j];
+            }
+            for(int i = 0; i < list_items.size(); ++i) {
+                *list_items[i] = saved_items[i];
+            }
+        }
+
+        // Step 3: Decide whether to accept the best move found
+        // if(move_found && best_move_score > best_score) {
+        if(move_found) {
+            // Apply the best move
+            // Define the neighbor as the pair (worst_bin, other_bin)
+            Bins* worse_bin_ptr = nullptr;
+            Bins* other_bin_ptr = nullptr;
+
+            // Find pointers to the bins based on IDs
+            for(auto& bin : current_bins) {
+                if(bin.id == best_move.worse_bin_id) {
+                    worse_bin_ptr = &bin;
+                }
+                if(bin.id == best_move.other_bin_id) {
+                    other_bin_ptr = &bin;
+                }
+            }
+
+            if(worse_bin_ptr && other_bin_ptr) {
+                vector<Bins*> neighbor_bins = {worse_bin_ptr, other_bin_ptr};
+
+                // Save the current state of the selected bins
+                vector<Bins> saved_bins;
+                for(auto bin_ptr : neighbor_bins) {
+                    saved_bins.emplace_back(*bin_ptr);
+                }
+
+                // Retrieve and reset items from the selected bins
+                vector<Items*> list_items = reset_bin_and_retrieve_item(neighbor_bins);
+
+                // Save the current state of items
+                vector<Items> saved_items;
+                for(auto item_ptr : list_items) {
+                    saved_items.emplace_back(*item_ptr);
+                    reset_item(item_ptr); // Reset the item's state
+                }
+
+                // Attempt to solve the modified bins
+                bool found_sol = Solve_maxrec_partial(list_items, neighbor_bins);
+
+                if(found_sol) {
+                    // Update best score if improved
+                    if(best_move_score < best_score) {
+                        best_score = best_move_score;
+                        store_best_items(best_items);
+                    }
+
+                    // Step 4: Update the tabu list with the move
+                    tabu_list_deque.push_back(best_move);
+                    tabu_set.insert(best_move);
+
+                    // Maintain the tabu list size based on tabu_tenure
+                    if(tabu_list_deque.size() > (size_t)tabu_tenure) {
+                        Move expired_move = tabu_list_deque.front();
+                        tabu_list_deque.pop_front();
+                        tabu_set.erase(expired_move);
+                    }
+                }
+                else {
+                    // If no solution found, revert to the saved state
+                    for(int j = 0; j < neighbor_bins.size(); ++j) {
+                        *neighbor_bins[j] = saved_bins[j];
+                    }
+                    for(int i = 0; i < list_items.size(); ++i) {
+                        *list_items[i] = saved_items[i];
+                    }
+                }
+            }
+        }
+        else {
+            // No move found - stop
+            break;
+        }
+
+        // Optionally, log iteration details
+        // cout << "Tabu Iteration " << iter+1 << ": Current Best Score = " << best_score << endl;
+    }
+
+    // After iterations, set current_bins to best_bins
+    load_best_items(best_items);
+}
+
 /*----------------- MAIN PROGRAM ------------------*/
 
 /*----------------- READ INPUT -----------------*/
@@ -1026,8 +1301,10 @@ void Solve()
         check_algorithm = 1;
     }
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
-    // local_search(current_bin, 10000);
-    simulated_annealing(current_bin, 100000, 1, 0.99);
+    // local_search(current_bin, 100000);
+    // simulated_annealing(current_bin, 100000, 1, 0.99);
+    // hill_climbing(current_bin, 1000);
+    tabu_search(current_bin, 100000, 50);
     check_algorithm = 1; // local search    
 }
 

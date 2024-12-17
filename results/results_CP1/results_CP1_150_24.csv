@@ -1,1 +1,4 @@
 n_packs, n_bins, n_bins_used, cost, status, solver_running_time, real_running_time, time_limit_for_solver,
+600,600,,,NO SOLUTION FOUND,,113.56,150,
+700,700,,,NO SOLUTION FOUND,,0.33,150,
+100,100,,

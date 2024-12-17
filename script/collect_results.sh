@@ -11,7 +11,7 @@ input_data_folder=input_data/           # input data folder
 if [ -z "$mode" ]; then
     echo "Missing solver mode"
     exit 1
-elif [[ ! "$mode" =~ "CP1" && ! "$mode" =~ "CP2" && ! "$mode" =~ "MIP" && ! "$mode" =~ "HEU" && ! "$mode" =~ "LS" && ! "$mode" =~ "PB" && ! "$mode" =~ "SA" && ! "$mode" =~ "HC" && ! "$mode" =~ "Tabu" ]]; then
+elif [[ ! "$mode" =~ "CP1" && ! "$mode" =~ "CP2" && ! "$mode" =~ "MIP" && ! "$mode" =~ "HEU" && ! "$mode" =~ "LS" && ! "$mode" =~ "PB" && ! "$mode" =~ "SA" && ! "$mode" =~ "HC" && ! "$mode" =~ "Tabu" && ! "$mode" =~ "LS2" && ! "$mode" =~ "PB2" && ! "$mode" =~ "SA2" && ! "$mode" =~ "HC2" && ! "$mode" =~ "Tabu2" && ! "$mode" =~ "BFSA" ]]; then
     echo "Invalid solver mode"
     exit 1  
 else
@@ -47,6 +47,42 @@ else
         output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
     elif [ $mode == "Tabu" ]; then 
         output_folder=results/results_${mode} 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv
+    elif [ $mode == "LS2" ]; then 
+        output_folder=results/results_LS2 
+
+        files=$(ls $input_data_folder/*.txt)           
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "PB2" ]; then 
+        output_folder=results/results_PB2 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "SA2" ]; then 
+        output_folder=results/results_SA2 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "HC2" ]; then 
+        output_folder=results/results_HC2 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv 
+    elif [ $mode == "Tabu2" ]; then 
+        output_folder=results/results_Tabu2 
+
+        files=$(ls $input_data_folder/*.txt)        
+
+        output_csv=$output_folder/results_${mode}_${time_limit}_$attempt.csv
+    elif [ $mode == "BFSA" ]; then 
+        output_folder=results/results_BFSA 
 
         files=$(ls $input_data_folder/*.txt)        
 
@@ -88,6 +124,18 @@ for file in $files; do
         /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/hill_climbing $file $time_limit > $output_folder/$(basename $file).out
     elif [ $mode == "Tabu" ]; then
         /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/tabu_main $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "LS2" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/LS2 $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "PB2" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/PB2 $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "SA2" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/SA2 $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "HC2" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/HC2 $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "Tabu2" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/tabu2 $file $time_limit > $output_folder/$(basename $file).out
+    elif [ $mode == "BFSA" ]; then
+        /usr/bin/time -f "Real running Time: %e" -ao $output_folder/$(basename $file).out  ./solver_file/Heuristic/BFSA $file $time_limit > $output_folder/$(basename $file).out
     fi
 
     # Get the input number of packages and number of bins from input file
@@ -112,6 +160,18 @@ for file in $files; do
     elif [ $mode == "HC" ]; then
         echo "None" | tr '\n' ','>> $output_csv
     elif [ $mode == "Tabu" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "LS2" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "PB2" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "SA2" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "HC2" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "Tabu2" ]; then
+        echo "None" | tr '\n' ','>> $output_csv
+    elif [ $mode == "BFSA" ]; then
         echo "None" | tr '\n' ','>> $output_csv
     else
         echo $time_limit | tr '\n' ',' >> $output_csv       # Write the time_limit to result file

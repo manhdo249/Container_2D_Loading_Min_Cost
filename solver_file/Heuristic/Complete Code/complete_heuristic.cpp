@@ -1,5 +1,4 @@
 // Heuristic
-/*----------------- COMPLETE PROGRAM ------------------*/
 
 #include <bits/stdc++.h>
 
