@@ -1309,6 +1309,9 @@ void Solve()
     // hill_climbing(current_bin, 1000);
     tabu_search(current_bin, 100000, 50);
     check_algorithm = 1; // local search    
+    pair<int, int> result_last = calculate_solution_local_search(current_bin);
+    total_cost = result_last.first;
+    bin_used = result_last.second;
 }
 
 

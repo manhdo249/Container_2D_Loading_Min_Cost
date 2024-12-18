@@ -1027,7 +1027,10 @@ void Solve()
     vector<Bins> current_bin = restore_for_local_search(check_algorithm);
     local_search(current_bin, 100000);
     // simulated_annealing(current_bin, 100000, 1, 0.99);
-    check_algorithm = 1; // local search    
+    check_algorithm = 1; // local search  
+    pair<int, int> result_last = calculate_solution_local_search(current_bin);
+    total_cost = result_last.first;
+    bin_used = result_last.second;  
 }
 
 
